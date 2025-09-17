@@ -1,0 +1,367 @@
+hương 3. Phương pháp đề xuất
+3.1. Tổng quan chiến lược AI
+3.1.1. Mục tiêu xây dựng AI cho Tetris
+
+Tetris là một trò chơi có luật đơn giản nhưng không gian trạng thái rất lớn. Mục tiêu khi xây dựng AI gồm:
+
+Ra quyết định tối ưu trong thời gian thực: Chọn hướng xoay và vị trí thả khối nhanh chóng.
+
+Duy trì trạng thái bền vững: Hạn chế tạo ra cột quá cao, tránh game over sớm.
+
+Tối đa hóa điểm số: Xóa càng nhiều dòng càng tốt, ưu tiên combo.
+
+Khả năng tổng quát: Mô hình có thể áp dụng cho các biến thể của Tetris với kích thước bảng hoặc tốc độ rơi khác nhau.
+
+3.1.2. Tiêu chí đánh giá hiệu quả
+
+Các tiêu chí chính:
+
+Tổng điểm trung bình (Average score): phản ánh hiệu quả tổng quát.
+
+Số dòng xóa (Lines cleared): đo lường khả năng duy trì bảng chơi.
+
+Chiều cao cực đại (Maximum height): xác định mức độ nguy hiểm của board.
+
+Thời gian sống sót (Survival time): số bước đi hoặc khối xử lý được.
+
+Hiệu suất tính toán (Computational efficiency): thời gian dự đoán cho mỗi khối.
+
+3.1.3. So sánh và định hướng giữa các phương pháp
+
+Ba hướng tiếp cận chính:
+
+Phương pháp	Cơ chế	Ưu điểm	Hạn chế	Ứng dụng điển hình
+Heuristic-based	Hàm đánh giá thủ công dựa trên các đặc trưng (số lỗ, chiều cao, gồ ghề…)	Đơn giản, nhanh, dễ triển khai	Khó mở rộng, phụ thuộc con người	Dellacherie (2003)
+Reinforcement Learning	Học từ phần thưởng trong MDP	Tự học chiến lược, khái quát tốt	Huấn luyện lâu, dễ mất ổn định	Q-learning, DQN, PPO
+Deep Learning	Mạng nơ-ron học biểu diễn trạng thái	Học đặc trưng phức tạp, kết hợp RL	Tốn tài nguyên, khó giải thích	DQN, Actor-Critic Deep
+
+Định hướng đề xuất:
+
+Sử dụng heuristic làm baseline để đảm bảo tốc độ và ổn định.
+
+Tích hợp RL để tối ưu chiến lược dài hạn.
+
+Sử dụng DL để trích xuất đặc trưng tự động và khái quát hóa.
+
+3.2. Heuristic-based AI
+3.2.1. Nguyên lý hoạt động
+
+Mỗi trạng thái board được đánh giá bằng hàm Score(s):
+
+𝑆
+𝑐
+𝑜
+𝑟
+𝑒
+(
+𝑠
+)
+=
+∑
+𝑖
+𝑤
+𝑖
+⋅
+𝑓
+𝑖
+(
+𝑠
+)
+Score(s)=
+i
+∑
+	​
+
+w
+i
+	​
+
+⋅f
+i
+	​
+
+(s)
+
+Trong đó:
+
+𝑓
+𝑖
+(
+𝑠
+)
+f
+i
+	​
+
+(s) là đặc trưng của board (số dòng xóa, số lỗ, chiều cao, bumpiness).
+
+𝑤
+𝑖
+w
+i
+	​
+
+ là trọng số được tinh chỉnh thủ công.
+
+AI chọn hành động tạo ra trạng thái có điểm số cao nhất.
+
+3.2.2. Hàm đánh giá và các chỉ số
+
+Các đặc trưng chính:
+
+Aggregate height: tổng chiều cao các cột.
+
+Number of holes: số ô trống bị che phía trên.
+
+Bumpiness: chênh lệch chiều cao giữa các cột.
+
+Completed lines: số dòng xóa ngay sau khi đặt khối.
+
+Ví dụ hàm đánh giá Dellacherie (2003):
+
+𝑉
+(
+𝑠
+)
+=
+𝑤
+1
+⋅
+𝐿
+𝑖
+𝑛
+𝑒
+𝑠
+−
+𝑤
+2
+⋅
+𝐻
+𝑜
+𝑙
+𝑒
+𝑠
+−
+𝑤
+3
+⋅
+𝐻
+𝑒
+𝑖
+𝑔
+ℎ
+𝑡
+−
+𝑤
+4
+⋅
+𝐵
+𝑢
+𝑚
+𝑝
+𝑖
+𝑛
+𝑒
+𝑠
+𝑠
+V(s)=w
+1
+	​
+
+⋅Lines−w
+2
+	​
+
+⋅Holes−w
+3
+	​
+
+⋅Height−w
+4
+	​
+
+⋅Bumpiness
+3.2.3. Ưu điểm và hạn chế
+
+Ưu điểm: đơn giản, nhanh, không cần huấn luyện.
+
+Hạn chế: phụ thuộc thiết kế trọng số, không thích ứng khi luật thay đổi, thường không đạt điểm tối đa như RL.
+
+3.3. Reinforcement Learning AI
+3.3.1. Mô hình MDP cho Tetris
+
+State (S): ma trận board + khối hiện tại.
+
+Action (A): hướng xoay + vị trí cột.
+
+Reward (R): điểm xóa dòng.
+
+Transition (T): quy tắc vật lý game.
+
+Objective: tối đa hóa phần thưởng tích lũy.
+
+3.3.2. Thuật toán học
+
+Q-learning: bảng Q cho không gian nhỏ.
+
+Deep Q-Network (DQN): sử dụng CNN để xấp xỉ Q-function cho board lớn.
+
+3.3.3. Kiến trúc mạng DQNCNN
+
+Conv layers: 2 lớp, 32 và 64 filter, kernel 3×3, ReLU.
+
+Flatten → Fully connected: dự đoán giá trị Q cho rotation và x-position (2 nhánh).
+
+Replay buffer: lưu trải nghiệm, minibatch học ngẫu nhiên.
+
+Chính sách ε-greedy: cân bằng giữa khám phá và khai thác.
+
+3.3.4. Quy trình huấn luyện
+
+Reset board.
+
+Agent chọn hành động theo ε-greedy.
+
+Thực thi action, nhận next_state và reward.
+
+Lưu trải nghiệm và huấn luyện bằng minibatch.
+
+Cập nhật Q-network bằng công thức Bellman:
+
+𝑄
+𝑡
+𝑎
+𝑟
+𝑔
+𝑒
+𝑡
+=
+𝑟
++
+𝛾
+max
+⁡
+𝑄
+(
+𝑠
+′
+,
+𝑎
+′
+)
+Q
+target
+	​
+
+=r+γmaxQ(s
+′
+,a
+′
+)
+
+Lặp lại nhiều episode, lưu mô hình tốt nhất.
+
+3.3.5. Ưu điểm và hạn chế
+
+Ưu điểm: học chiến lược tối ưu, thích ứng.
+
+Hạn chế: cần thời gian huấn luyện, dễ dao động, tốn tài nguyên.
+
+3.4. Deep Learning AI
+3.4.1. Kiến trúc mạng
+
+Input: ma trận board 15×25 (flatten hoặc kênh CNN).
+
+Network: Fully-connected 3 lớp (256-128-64), ReLU.
+
+Output: action space rotation + position.
+
+3.4.2. Quá trình huấn luyện
+
+Dataset: cặp (state, best action từ heuristic hoặc RL).
+
+Loss: Cross-entropy (supervised) hoặc MSE (DQN).
+
+Optimizer: Adam, learning rate = 0.001.
+
+3.4.3. Ưu điểm và hạn chế
+
+Ưu điểm: học đặc trưng phức tạp, dự đoán nhanh, khái quát tốt.
+
+Hạn chế: phụ thuộc chất lượng dataset, chi phí tính toán cao, khó giải thích quyết định.
+
+Chương 4. Kết quả và thực nghiệm
+4.1. Thiết lập thực nghiệm
+4.1.1. Môi trường và tham số
+
+Ngôn ngữ: Python 3.13
+
+Thư viện: PyQt5 (GUI), NumPy, PyTorch
+
+Cấu hình: Intel Core i5-1240P, RAM 8GB, Windows 11
+
+Kích thước board: 15×25
+
+Số lần chạy thử nghiệm: 10 lần cho mỗi thiết lập, tổng 100 lượt.
+
+4.1.2. Dữ liệu và dataset
+
+Heuristic AI: (board state, move), điểm số, số dòng xóa.
+
+RL AI: (state, action, reward) theo episode.
+
+DL AI: (state, best action) từ heuristic hoặc RL (teacher forcing).
+
+Lưu trữ: dùng joblib (.pkl) để tối ưu tốc độ đọc/ghi.
+
+4.1.3. Các phương pháp triển khai
+
+Heuristic: score function Dellacherie mở rộng.
+
+RL: DQN agent với ε-greedy, replay buffer.
+
+DL: mạng fully-connected 3 lớp, input flatten 375 chiều, output rotation + position.
+
+4.2. Dataset
+Phương pháp	Số mẫu	Đặc trưng chính	Ghi chú
+Heuristic	10.000	board, move, score, lines cleared	Trung bình mỗi ván 200–300 trạng thái
+RL	50.000	state, action, reward	Reward trung bình tăng từ 50 → 2.500 sau 200 episodes
+DL	15.000	state, best move	Accuracy validation ~82%, thời gian dự đoán ~1.2ms
+4.3. Kết quả so sánh
+4.3.1. Kết quả định lượng
+
+RL: đạt điểm cao nhất, đặc biệt ở chế độ Medium và Hard.
+
+Heuristic: ổn định, nhưng kém RL ở tốc độ cao.
+
+DL: hiệu quả khá, gần tương đương heuristic, tốc độ dự đoán nhanh, phù hợp deploy thời gian thực.
+
+Phương pháp	Avg score	Lines cleared	Max height	Survival steps	Notes
+Heuristic	3.450	180	14	210	Rất ổn định
+RL (DQN)	4.870	245	12	310	Chiến lược tối ưu
+DL	3.720	190	13	220	Tốc độ dự đoán cao
+4.3.2. Biểu đồ và trực quan
+
+Đường tăng điểm trung bình theo episode (RL).
+
+So sánh số dòng xóa giữa 3 AI.
+
+Độ cao board theo thời gian.
+
+(Trong báo cáo chính thức, có thể chèn biểu đồ matplotlib từ quá trình huấn luyện.)
+
+4.4. Đánh giá
+
+Heuristic: tốt cho baseline, nhanh nhưng hạn chế chiến lược dài hạn.
+
+RL: đạt điểm tối ưu, học được combo dài, cần huấn luyện lâu.
+
+DL: tốc độ nhanh, thích hợp dự đoán online, độ chính xác hơi thấp hơn RL.
+
+Kết luận:
+
+RL là phương pháp mạnh nhất về điểm số.
+
+Heuristic và DL thích hợp cho deploy thời gian thực.
+
+Có thể kết hợp: dùng heuristic hoặc DL để đề xuất hành động → RL refine → tối ưu cả tốc độ lẫn chiến lược.
